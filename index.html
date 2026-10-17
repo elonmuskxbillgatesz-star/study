@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Gentle Reminders & Focus</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f2f2f7;
+      color: #1c1c1e;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .apple-btn {
+      transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.12s ease;
+    }
+    .apple-btn:active {
+      transform: scale(0.94);
+      opacity: 0.85;
+    }
+
+    /* Custom Hide Scrollbars */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Floating Toast Animation */
+    @keyframes toastPop {
+      0% { transform: translateY(20px) scale(0.8); opacity: 0; }
+      20% { transform: translateY(0) scale(1.05); opacity: 1; }
+      80% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-10px) scale(0.9); opacity: 0; }
+    }
+    .toast-animate {
+      animation: toastPop 2.8s ease-in-out forwards;
+    }
+  </style>
+</head>
+<body class="h-[100dvh] w-full flex flex-col justify-between overflow-hidden relative antialiased">
+
+  <!-- TOP HEADER -->
+  <header class="w-full px-5 pt-12 pb-3 flex items-center justify-between z-10 glass-card border-b border-gray-200/50">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-gray-900">Gentle Tasks</h1>
+      <p id="taskCounter" class="text-xs font-medium text-gray-500 mt-0.5">0 remaining focus items</p>
+    </div>
+    <button onclick="triggerCompletionToast()" class="apple-btn p-2 rounded-full bg-blue-50 text-blue-600 text-sm font-semibold flex items-center gap-1">
+      <span class="text-base">✨</span>
+    </button>
+  </header>
+
+  <!-- CELEBRATION FLOATING TOAST (HIDDEN BY DEFAULT) -->
+  <div id="mascotToast" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+    <div class="toast-animate glass-card px-5 py-2.5 rounded-full shadow-xl border border-white/80 flex items-center gap-2 bg-emerald-500/90 text-white">
+      <span class="text-2xl">👍</span>
+      <span class="text-sm font-bold tracking-wide">Great Job! Completed!</span>
+    </div>
+  </div>
+
+  <!-- MAIN SCROLLABLE CONTENT AREA -->
+  <main class="flex-1 overflow-y-auto px-4 py-4 space-y-4 no-scrollbar pb-24" id="mainContent">
+    
+    <!-- SECTION 1: TASKS TAB -->
+    <div id="tab-tasks" class="space-y-4">
+      <!-- TIME DIAL CARD -->
+      <div class="glass-card rounded-2xl p-4 shadow-sm space-y-3">
+        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Set Focus Duration</label>
+        <div class="flex items-center justify-between bg-white/70 p-2 rounded-xl border border-gray-100">
+          <button onclick="adjustDial(-5)" class="apple-btn w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-600">-5m</button>
+          <div class="text-center">
+            <span id="dialValue" class="text-3xl font-extrabold text-blue-600">25</span>
+            <span class="text-xs font-semibold text-gray-400"> mins</span>
+          </div>
+          <button onclick="adjustDial(5)" class="apple-btn w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-600">+5m</button>
+        </div>
+      </div>
+
+      <!-- ADD TASK INPUT -->
+      <div class="glass-card rounded-2xl p-3 shadow-sm flex items-center gap-2">
+        <input type="text" id="taskInput" placeholder="What's on your mind?" class="flex-1 bg-transparent px-2 py-1 text-sm outline-none placeholder-gray-400 font-medium text-gray-800" onkeypress="if(event.key==='Enter') addTask()" />
+        <button onclick="addTask()" class="apple-btn px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20">Add</button>
+      </div>
+
+      <!-- TASK LIST CONTAINER -->
+      <div id="taskList" class="space-y-2.5">
+        <!-- Tasks render dynamically here -->
+      </div>
+    </div>
+
+    <!-- SECTION 2: PRESETS TAB -->
+    <div id="tab-presets" class="hidden space-y-3">
+      <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">Quick Add Presets</h2>
+      <div class="grid grid-cols-2 gap-2.5">
+        <button onclick="addPreset('📚 Physics Practice', 30)" class="apple-btn p-4 glass-card rounded-2xl text-left border border-white/60">
+          <span class="text-2xl block mb-1">📚</span>
+          <p class="text-xs font-bold text-gray-800">Physics Study</p>
+          <span class="text-[10px] text-gray-400">30 mins timer</span>
+        </button>
+        <button onclick="addPreset('🧪 Chemistry Formulas', 20)" class="apple-btn p-4 glass-card rounded-2xl text-left border border-white/60">
+          <span class="text-2xl block mb-1">🧪</span>
+          <p class="text-xs font-bold text-gray-800">Chemistry Review</p>
+          <span class="text-[10px] text-gray-400">20 mins timer</span>
+        </button>
+        <button onclick="addPreset('🍅 Pomodoro Sprint', 25)" class="apple-btn p-4 glass-card rounded-2xl text-left border border-white/60">
+          <span class="text-2xl block mb-1">🍅</span>
+          <p class="text-xs font-bold text-gray-800">Pomodoro Focus</p>
+          <span class="text-[10px] text-gray-400">25 mins timer</span>
+        </button>
+        <button onclick="addPreset('🧘 Mindfulness & Tea', 10)" class="apple-btn p-4 glass-card rounded-2xl text-left border border-white/60">
+          <span class="text-2xl block mb-1">🧘</span>
+          <p class="text-xs font-bold text-gray-800">Mindful Break</p>
+          <span class="text-[10px] text-gray-400">10 mins timer</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SECTION 3: PRACTICE TAB -->
+    <div id="tab-practice" class="hidden space-y-3">
+      <div class="glass-card rounded-2xl p-4 shadow-sm text-center space-y-3">
+        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">Timed Practice Mode</span>
+        <h3 class="text-lg font-bold text-gray-800">10 Questions • 1m/Question</h3>
+        <p class="text-xs text-gray-500">Track your speed and accuracy question by question.</p>
+        <button onclick="startPracticeSession()" class="apple-btn w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20">Start 10m Test Session</button>
+      </div>
+      <div id="practiceStatus" class="space-y-2"></div>
+    </div>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="fixed bottom-0 left-0 right-0 glass-card border-t border-gray-200/50 px-6 py-3 flex items-center justify-around z-40">
+    <button onclick="switchTab('tasks')" id="nav-tasks" class="apple-btn flex flex-col items-center gap-1 text-blue-600">
+      <span class="text-lg">📋</span>
+      <span class="text-[10px] font-bold">Tasks</span>
+    </button>
+    <button onclick="switchTab('presets')" id="nav-presets" class="apple-btn flex flex-col items-center gap-1 text-gray-400">
+      <span class="text-lg">⚡</span>
+      <span class="text-[10px] font-bold">Presets</span>
+    </button>
+    <button onclick="switchTab('practice')" id="nav-practice" class="apple-btn flex flex-col items-center gap-1 text-gray-400">
+      <span class="text-lg">⏱️</span>
+      <span class="text-[10px] font-bold">Practice</span>
+    </button>
+  </nav>
+
+  <script>
+    let tasks = [
+      { id: 1, title: 'Review chemistry notes', duration: 20, completed: false },
+      { id: 2, title: 'Practice 5 physics PYQs', duration: 25, completed: true }
+    ];
+    let selectedDuration = 25;
+
+    // AUDIO HAPTIC ENGINE
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTapSound(freq = 600, duration = 0.05) {
+      if (navigator.vibrate) navigator.vibrate(12);
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    function adjustDial(val) {
+      playTapSound(700);
+      selectedDuration = Math.max(1, Math.min(120, selectedDuration + val));
+      document.getElementById('dialValue').innerText = selectedDuration;
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      const remaining = tasks.filter(t => !t.completed).length;
+      document.getElementById('taskCounter').innerText = `${remaining} remaining focus item${remaining===1?'':'s'}`;
+
+      tasks.forEach(task => {
+        const item = document.createElement('div');
+        item.className = `glass-card p-3 rounded-2xl flex items-center justify-between border border-white/60 ${task.completed?'opacity-50':''}`;
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <button onclick="toggleTask(${task.id})" class="apple-btn w-6 h-6 rounded-full border-2 ${task.completed?'bg-emerald-500 border-emerald-500 text-white':'border-gray-300'} flex items-center justify-center text-xs font-bold">
+              ${task.completed?'✓':''}
+            </button>
+            <div>
+              <p class="text-sm font-semibold ${task.completed?'line-through text-gray-400':'text-gray-800'}">${escapeHtml(task.title)}</p>
+              <span class="text-[10px] text-gray-400 font-medium">⏰ ${task.duration} mins</span>
+            </div>
+          </div>
+          <button onclick="deleteTask(${task.id})" class="apple-btn text-gray-300 hover:text-red-500 text-sm px-2">✕</button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      if (!input.value.trim()) return;
+      playTapSound(800);
+      tasks.unshift({
+        id: Date.now(),
+        title: input.value.trim(),
+        duration: selectedDuration,
+        completed: false
+      });
+      input.value = '';
+      renderTasks();
+    }
+
+    function addPreset(title, duration) {
+      playTapSound(850);
+      tasks.unshift({ id: Date.now(), title, duration, completed: false });
+      switchTab('tasks');
+      renderTasks();
+    }
+
+    function toggleTask(id) {
+      playTapSound(1000);
+      tasks = tasks.map(t => {
+        if (t.id === id) {
+          const newState = !t.completed;
+          if (newState) triggerCompletionToast();
+          return { ...t, completed: newState };
+        }
+        return t;
+      });
+      renderTasks();
+    }
+
+    function deleteTask(id) {
+      playTapSound(400);
+      tasks = tasks.filter(t => t.id !== id);
+      renderTasks();
+    }
+
+    function triggerCompletionToast() {
+      playTapSound(1200, 0.15);
+      const toast = document.getElementById('mascotToast');
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 2800);
+    }
+
+    function switchTab(tab) {
+      playTapSound(500);
+      ['tasks', 'presets', 'practice'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`nav-${t}`).className = 'apple-btn flex flex-col items-center gap-1 text-gray-400';
+      });
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`nav-${tab}`).className = 'apple-btn flex flex-col items-center gap-1 text-blue-600';
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>
